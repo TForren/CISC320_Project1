@@ -6,6 +6,7 @@
 ###########################################################################
 import networkx as nx
 import sys
+import matplotlib.pyplot as plt
 
 #globals
 trainGraph = nx.MultiDiGraph() #create networkx graph
@@ -137,7 +138,5 @@ def parseFileLines(fileLines):
 				routeDuration = route[3]
 				if validateTime(routeStart,routeDuration): #route start is O.K.
 					trainGraph.add_edge(route[0],route[1], weight=routeStart, length=routeDuration)
-			vladkstras(trainGraph,splitLine[0],splitLine[1])	
-
-
+			vladkstras(trainGraph,splitLine[0],splitLine[1])
 parseFileLines(routesFile)
