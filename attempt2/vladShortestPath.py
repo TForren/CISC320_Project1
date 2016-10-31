@@ -1,16 +1,15 @@
-import networkx as nx
-import sys
 ###########################################################################
-# vladShortestPath
+# vladShortestPath by Teague Forren
 # takes in proprietary train graph *_in.txt file
 # prints out to system how many bags of blood vlad will need for each graph
+# example: python vladShortestPath.py examples/sample_in.txt
 ###########################################################################
+import networkx as nx
+import sys
 
 #globals
 trainGraph = nx.MultiDiGraph() #create networkx graph
 hourRange = range(18,25) + range(1,7)
-#daylight = range(7-18)
-#python vladShortestPath.py sample_in.txt
 f = open(sys.argv[1])
 routesFile = f.readlines()
 f.close()
@@ -40,11 +39,10 @@ def minDist(bloodDists,Q):
 
 #calcBloodUsage
 #takes the start time, and duration of trip
-#returns how many litres of blood will be needed
+#returns how many litres of blood will be needed and the ending hour
 def calcBloodUsage(startHour,duration,curBlood,curClock):
 	cost = curBlood
 	endHour = hourRange[hourRange.index(startHour)+duration]
-	print "start Hour:", startHour, "curClock:",curClock
 	startIndex = hourRange.index(startHour)
 	
 	if (startIndex < hourRange.index(curClock)):
@@ -62,33 +60,32 @@ def leastBloodPathCost(graph, start, end, curBlood, curClock):
 	result = (float('inf'),float('inf'))
 	edges = graph[start][end]
 	for edge in edges:
-		print "considering edge",edges[edge]
 		startTime = edges[edge]["weight"]
 		duration = edges[edge]["length"]
 		bloodEval = calcBloodUsage(startTime, duration, curBlood, curClock)
 		if (bloodEval[0] <= result):
 			result = bloodEval
-	print "end edge check"
 	return result
 
 #vladkstras
 #takes in a directed weighted graph, start, and end node
-#returns needed blood bags in system print
+#returns needed blood bags in system out
 def vladkstras(graph,start,end):
-	result = "There are no paths that Vlad can take!"
+	result = "There are no paths that Vlad can take."
 	stations = graph.nodes()
-	path = None
-	curClock = 18
 	if not len(stations) == 0:
 		bloodDists = dict()
+		clockTimes = dict()
 		prev = dict()
 		for station in stations:
 			bloodDists[station] = float("inf")
+			clockTimes[station] = None
 			prev[station] = None
 		bloodDists[start] = 0
+		clockTimes[start] = 18
 		Q = set(stations)
 		while len(Q) > 0:
-			u = minDist(bloodDists,Q)
+			u = minDist(bloodDists,Q) #pick next station that needs the least blood
 			Q.remove(u)
 
 			if bloodDists[u] == float('inf'):
@@ -96,20 +93,14 @@ def vladkstras(graph,start,end):
 			neighbors = graph.neighbors(u)
 			for station in neighbors:
 				curBlood = bloodDists[u]
-				#print "curBlood",curBlood
+				curClock = clockTimes[u]
 				possiblePathCost = leastBloodPathCost(graph,u,station,curBlood,curClock)
-				print "blood Needed to", station, "is", bloodDists[station]
 				if possiblePathCost[0] <= bloodDists[station]:
-					print "found best path to",station,"using", possiblePathCost
 					bloodDists[station] = possiblePathCost[0]
+					clockTimes[station] = possiblePathCost[1]
 					prev[station] = u
-					curClock = possiblePathCost[1]
-					if (curClock > 24):
-						curClock -= 24
-		#result = dist
-		path = bloodDists[end]
-		#result = calcBloodUsage(graph,path)
-	print path
+		result = "Vlad will need " + str(bloodDists[end])+ " litres of blood."
+	print result
 
 #parseFileLines
 #takes in the contents of a route file and stores all needed information
@@ -122,10 +113,9 @@ def parseFileLines(fileLines):
 	stations = []
 	endPath = []
 	for counter, line in enumerate(fileLines):
-		#print line
 		if (counter == 0):
+		    print line.split()[0],"test cases."
 		    testCaseCount = line
-		    print "Loading", line, "test cases..."
 		else:
 		    splitLine = line.split()
 		if (len(splitLine) == 1): #must be route count line.
@@ -134,7 +124,6 @@ def parseFileLines(fileLines):
 		    stations = []
 		else:
 		    if (routeCount > 0):
-			#print splitLine 
 			routes.append([splitLine[0],splitLine[1],int(splitLine[2]),int(splitLine[3])])
 			if not splitLine[0] in stations: 
 				stations.append(splitLine[0])
@@ -142,11 +131,7 @@ def parseFileLines(fileLines):
 				stations.append(splitLine[1])
 			routeCount -= 1
 		    elif (len(splitLine) == 2): #end of the test case. should be start and destination ["s","d"]
-			print "routes:",routes
-			#print "stations:",stations
-			#neighbors = getNeighborsDict(routes)
-			#print "neighborsDict:", neighbors
-			print "start:",splitLine[0],"end:",splitLine[1]
+			print "start at",splitLine[0],"and going to",splitLine[1]
 			for route in routes:
 				routeStart = route[2]
 				routeDuration = route[3]
