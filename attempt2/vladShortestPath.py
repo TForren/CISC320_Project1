@@ -10,8 +10,6 @@ import sys
 trainGraph = nx.MultiDiGraph() #create networkx graph
 hourRange = range(18,25) + range(1,7)
 #daylight = range(7-18)
-curClock = 18
-lastClockChange = 0
 #python vladShortestPath.py sample_in.txt
 f = open(sys.argv[1])
 routesFile = f.readlines()
@@ -43,36 +41,34 @@ def minDist(bloodDists,Q):
 #calcBloodUsage
 #takes the start time, and duration of trip
 #returns how many litres of blood will be needed
-def calcBloodUsage(startHour,duration):
-	result = None
-	
+def calcBloodUsage(startHour,duration,curBlood,curClock):
+	cost = curBlood
 	endHour = hourRange[hourRange.index(startHour)+duration]
-	if (endHour < startHour):
-		endHour += 24
-	if (startHour < 12 and endHour > 12):
-		result = 1
-	lastClockChange = endHour
-	return (result,endHour)
+	print "start Hour:", startHour, "curClock:",curClock
+	startIndex = hourRange.index(startHour)
+	
+	if (startIndex < hourRange.index(curClock)):
+		cost += 1	
+	#if (endHour < startHour):
+	#	endHour += 24
+	#if (startHour < 12 and endHour > 12):
+	#	cost += 1
+	return (cost,endHour)
 
-#leastBloodPath
-#takes in the start station, end station
-#returns the path 
-def leastBloodPath(graph, start, end,curBlood):
-	result = 0
+#leastBloodPathCost
+#determines the path that needs the least amount of blood 
+#returns a tuple (bloodCount, newClockHour)
+def leastBloodPathCost(graph, start, end, curBlood, curClock):
+	result = (float('inf'),float('inf'))
 	edges = graph[start][end]
-	shortest = float("inf")
-	newClock = 0
 	for edge in edges:
-		#print edges[edge]
+		print "considering edge",edges[edge]
 		startTime = edges[edge]["weight"]
 		duration = edges[edge]["length"]
-		bloodEval = calcBloodUsage(startTime,duration)
-		if (bloodEval[0] <= shortest):
-			result = bloodEval[0]
-			print "updating Clock", bloodEval[1]
-			newClock = bloodEval[1]
-	curClock = newClock
-	print curClock
+		bloodEval = calcBloodUsage(startTime, duration, curBlood, curClock)
+		if (bloodEval[0] <= result):
+			result = bloodEval
+	print "end edge check"
 	return result
 
 #vladkstras
@@ -101,15 +97,15 @@ def vladkstras(graph,start,end):
 			for station in neighbors:
 				curBlood = bloodDists[u]
 				#print "curBlood",curBlood
-				nextPathBloodCost = curBlood + leastBloodPath(graph, u, station,curBlood) #alt
-				#alt = dist[u] + nx.shortest_path_length(graph, u, station,weight='weight')
-				if nextPathBloodCost <= bloodDists[station]:
-					bloodDists[station] = nextPathBloodCost
+				possiblePathCost = leastBloodPathCost(graph,u,station,curBlood,curClock)
+				print "blood Needed to", station, "is", bloodDists[station]
+				if possiblePathCost[0] <= bloodDists[station]:
+					print "found best path to",station,"using", possiblePathCost
+					bloodDists[station] = possiblePathCost[0]
 					prev[station] = u
-					print "prev",prev
-				#if alt < dist[station]:
-				#	dist[station] = alt
-				#	prev[station] = u
+					curClock = possiblePathCost[1]
+					if (curClock > 24):
+						curClock -= 24
 		#result = dist
 		path = bloodDists[end]
 		#result = calcBloodUsage(graph,path)
